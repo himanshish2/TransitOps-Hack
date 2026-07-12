@@ -1,1 +1,2 @@
-Odoo Hackathon
+Odoo hackathon
+
