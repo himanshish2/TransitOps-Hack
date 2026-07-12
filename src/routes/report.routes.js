@@ -21,7 +21,12 @@ async function buildVehicleReport() {
       .filter((t) => t.status === "Completed")
       .reduce((sum, t) => sum + (t.actualDistance || 0), 0);
 
-    const operationalCost = totalFuelCost + totalMaintenanceCost + totalExpenses;
+    // operationalCost matches the PDF spec exactly: Fuel + Maintenance only.
+    const operationalCost = totalFuelCost + totalMaintenanceCost;
+    // totalCostWithExpenses is the fuller figure (Fuel + Maintenance + Other
+    // Expenses) for anyone who wants the complete picture including tolls/misc.
+    const totalCostWithExpenses = operationalCost + totalExpenses;
+
     const fuelEfficiency = totalFuelLiters > 0 ? totalDistance / totalFuelLiters : null;
 
     // Revenue isn't in the current schema — placeholder for whoever wires up
@@ -40,6 +45,7 @@ async function buildVehicleReport() {
       totalMaintenanceCost,
       totalExpenses,
       operationalCost,
+      totalCostWithExpenses,
       fuelEfficiency,
       roi,
     };

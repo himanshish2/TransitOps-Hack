@@ -8,7 +8,7 @@ router.use(authenticate);
 
 // GET /api/dashboard?vehicleType=Truck&status=Available&region=North
 //
-// Filters apply to the vehicle-derived metrics (activeVehicles, availableVehicles,
+// Filters apply to the vehicle-derived metrics (vehiclesOnTrip, availableVehicles,
 // vehiclesInMaintenance, vehicleStatusData, fleetUtilization) and to trips whose
 // vehicle matches the filtered set. driversOnDuty is not vehicle-scoped (drivers
 // aren't tied to a region/type) so it stays fleet-wide.
@@ -28,7 +28,7 @@ router.get("/", async (req, res, next) => {
     const totalVehicles = vehicles.length;
     const countByStatus = (s) => vehicles.filter((v) => v.status === s).length;
 
-    const activeVehicles = countByStatus("On Trip");
+    const vehiclesOnTrip = countByStatus("On Trip");
     const availableVehicles = countByStatus("Available");
     const vehiclesInMaintenance = countByStatus("In Shop");
 
@@ -38,12 +38,13 @@ router.get("/", async (req, res, next) => {
       prisma.driver.count({ where: { status: "On Trip" } }),
     ]);
 
-    const fleetUtilization = totalVehicles > 0 ? Number(((activeVehicles / totalVehicles) * 100).toFixed(2)) : 0;
+    // fleetUtilization = (vehiclesOnTrip / totalVehicles) * 100, rounded to 2 decimals
+    const fleetUtilization = totalVehicles > 0 ? Number(((vehiclesOnTrip / totalVehicles) * 100).toFixed(2)) : 0;
 
     const vehicleStatusData = VEHICLE_STATUS.map((s) => ({ status: s, count: countByStatus(s) }));
 
     res.json({
-      activeVehicles,
+      vehiclesOnTrip,
       availableVehicles,
       vehiclesInMaintenance,
       activeTrips,
