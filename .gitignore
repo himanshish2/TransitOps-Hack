@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -26,3 +27,15 @@ yarn-error.log*
 .env.development
 .env.production
 node_modules/
+=======
+node_modules/
+.env
+.env.*
+!.env.example
+
+prisma/dev.db
+prisma/dev.db-journal
+
+coverage/
+dist/
+>>>>>>> 78dcaa28bb9ab3a21a9c3db600704955c15ae281
