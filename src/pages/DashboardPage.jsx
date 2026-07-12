@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+// src/pages/DashboardPage.jsx
+
+import {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+
 import {
   FiTruck,
   FiCheckCircle,
@@ -42,62 +49,107 @@ const DEFAULT_DASHBOARD = {
   fleetUtilizationData: [],
   tripsByRegion: [],
   alerts: [],
+  kpiDetails: {},
 };
 
-const DashboardPage = () => {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [dashboardData, setDashboardData] = useState(DEFAULT_DASHBOARD);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function DashboardPage() {
+  const [filters, setFilters] =
+    useState(DEFAULT_FILTERS);
 
-  const loadDashboard = useCallback(async (activeFilters) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await dashboardService.getDashboardData(activeFilters);
-      setDashboardData({ ...DEFAULT_DASHBOARD, ...(data || {}) });
-    } catch (err) {
-      setError(
-        err?.message || "Something went wrong while loading the dashboard."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [dashboardData, setDashboardData] =
+    useState(DEFAULT_DASHBOARD);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState(null);
+
+  const loadDashboard = useCallback(
+    async (activeFilters = DEFAULT_FILTERS) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data =
+          await dashboardService.getDashboardData(
+            activeFilters
+          );
+
+        setDashboardData({
+          ...DEFAULT_DASHBOARD,
+          ...(data || {}),
+          kpiDetails: {
+            ...DEFAULT_DASHBOARD.kpiDetails,
+            ...(data?.kpiDetails || {}),
+          },
+        });
+      } catch (loadError) {
+        setError(
+          loadError?.message ||
+            "Something went wrong while loading the dashboard."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadDashboard(filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadDashboard]);
 
-  const handleFilterChange = (nextFilters) => {
+  const handleFilterChange = (
+    filterName,
+    value
+  ) => {
+    const nextFilters = {
+      ...filters,
+      [filterName]: value,
+    };
+
     setFilters(nextFilters);
     loadDashboard(nextFilters);
   };
 
   const handleClearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-    loadDashboard(DEFAULT_FILTERS);
+    const clearedFilters = {
+      ...DEFAULT_FILTERS,
+    };
+
+    setFilters(clearedFilters);
+    loadDashboard(clearedFilters);
   };
 
-  const handleRetry = () => {
-    loadDashboard(filters);
-  };
+  const safeVehicleStatusData =
+    Array.isArray(
+      dashboardData.vehicleStatusData
+    )
+      ? dashboardData.vehicleStatusData
+      : [];
 
-  const safeVehicleStatusData = Array.isArray(dashboardData.vehicleStatusData)
-    ? dashboardData.vehicleStatusData
-    : [];
-  const safeFleetUtilizationData = Array.isArray(
-    dashboardData.fleetUtilizationData
+  const safeFleetUtilizationData =
+    Array.isArray(
+      dashboardData.fleetUtilizationData
+    )
+      ? dashboardData.fleetUtilizationData
+      : [];
+
+  const safeTripsByRegion = Array.isArray(
+    dashboardData.tripsByRegion
   )
-    ? dashboardData.fleetUtilizationData
-    : [];
-  const safeTripsByRegion = Array.isArray(dashboardData.tripsByRegion)
     ? dashboardData.tripsByRegion
     : [];
-  const safeAlerts = Array.isArray(dashboardData.alerts)
+
+  const safeAlerts = Array.isArray(
+    dashboardData.alerts
+  )
     ? dashboardData.alerts
     : [];
+
+  const details =
+    dashboardData.kpiDetails || {};
 
   return (
     <div className="dashboard-page">
@@ -112,10 +164,17 @@ const DashboardPage = () => {
         onClear={handleClearFilters}
       />
 
-      {loading && <LoadingState message="Loading dashboard..." />}
+      {loading && (
+        <LoadingState message="Loading dashboard..." />
+      )}
 
       {!loading && error && (
-        <ErrorState message={error} onRetry={handleRetry} />
+        <ErrorState
+          message={error}
+          onRetry={() =>
+            loadDashboard(filters)
+          }
+        />
       )}
 
       {!loading && !error && (
@@ -123,65 +182,126 @@ const DashboardPage = () => {
           <div className="dashboard-kpi-grid">
             <KpiCard
               label="Active Vehicles"
-              value={dashboardData.activeVehicles}
+              value={
+                dashboardData.activeVehicles
+              }
               icon={<FiTruck />}
+              description="Vehicles currently available or operating on an active trip."
+              details={
+                details.activeVehicles
+              }
             />
+
             <KpiCard
               label="Available Vehicles"
-              value={dashboardData.availableVehicles}
+              value={
+                dashboardData.availableVehicles
+              }
               icon={<FiCheckCircle />}
+              variant="success"
+              description="Vehicles currently eligible for trip assignment."
+              details={
+                details.availableVehicles
+              }
             />
+
             <KpiCard
               label="Vehicles in Maintenance"
-              value={dashboardData.vehiclesInMaintenance}
+              value={
+                dashboardData.vehiclesInMaintenance
+              }
               icon={<FiTool />}
+              variant="warning"
+              description="Vehicles marked In Shop and excluded from dispatch selection."
+              details={
+                details.vehiclesInMaintenance
+              }
             />
+
             <KpiCard
               label="Active Trips"
               value={dashboardData.activeTrips}
               icon={<FiActivity />}
+              variant="info"
+              description="Vehicles currently marked On Trip."
+              details={details.activeTrips}
             />
+
             <KpiCard
               label="Pending Trips"
               value={dashboardData.pendingTrips}
               icon={<FiClock />}
+              variant="warning"
+              description="Trips awaiting dispatch or operational confirmation."
+              details={details.pendingTrips}
             />
+
             <KpiCard
               label="Drivers On Duty"
-              value={dashboardData.driversOnDuty}
+              value={
+                dashboardData.driversOnDuty
+              }
               icon={<FiUsers />}
+              description="Drivers currently Available or On Trip."
+              details={
+                details.driversOnDuty
+              }
             />
+
             <KpiCard
               label="Fleet Utilization"
-              value={`${dashboardData.fleetUtilization ?? 0}%`}
+              value={`${
+                dashboardData.fleetUtilization ??
+                0
+              }%`}
               icon={<FiPercent />}
+              variant="info"
+              description="Share of operational vehicles currently assigned to active trips."
+              details={
+                details.fleetUtilization
+              }
             />
           </div>
 
           <div className="dashboard-charts-grid">
             <div className="dashboard-chart-card">
-              <h3 className="dashboard-chart-title">Vehicle Status</h3>
-              <VehicleStatusChart data={safeVehicleStatusData} />
+              <h3 className="dashboard-chart-title">
+                Vehicle Status
+              </h3>
+
+              <VehicleStatusChart
+                data={
+                  safeVehicleStatusData
+                }
+              />
             </div>
 
             <div className="dashboard-chart-card">
-              <h3 className="dashboard-chart-title">Fleet Utilization</h3>
-              <FleetUtilizationChart data={safeFleetUtilizationData} />
+              <h3 className="dashboard-chart-title">
+                Fleet Utilization
+              </h3>
+
+              <FleetUtilizationChart
+                data={
+                  safeFleetUtilizationData
+                }
+              />
             </div>
 
             <div className="dashboard-chart-card dashboard-chart-card-wide">
-              <h3 className="dashboard-chart-title">Trips by Region</h3>
-              <TripsByRegionChart data={safeTripsByRegion} />
+              <h3 className="dashboard-chart-title">
+                Active Trips by Region
+              </h3>
+
+              <TripsByRegionChart
+                data={safeTripsByRegion}
+              />
             </div>
           </div>
 
-          <div className="dashboard-alerts-section">
-            <AlertsPanel alerts={safeAlerts} />
-          </div>
+          <AlertsPanel alerts={safeAlerts} />
         </>
       )}
     </div>
   );
-};
-
-export default DashboardPage;
+}

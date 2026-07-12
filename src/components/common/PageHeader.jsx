@@ -1,11 +1,40 @@
-export default function PageHeader({ title, description, actions }) {
+// src/components/common/PageHeader.jsx
+
+export default function PageHeader({
+  title,
+  subtitle,
+  description,
+  actionLabel,
+  onAction,
+  actions,
+}) {
+  const supportingText = subtitle || description;
+
   return (
-    <div className="d-flex flex-wrap justify-content-between align-items-start gap-md mb-4">
-      <div>
-        <h1 className="fs-3">{title}</h1>
-        {description && <p className="text-muted-custom mb-0 mt-1">{description}</p>}
+    <div className="page-header">
+      <div className="page-header-copy">
+        <h1 className="page-header-title">{title}</h1>
+
+        {supportingText && (
+          <p className="page-header-description">
+            {supportingText}
+          </p>
+        )}
       </div>
-      {actions && <div className="d-flex gap-sm flex-wrap">{actions}</div>}
+
+      <div className="page-header-actions">
+        {actions}
+
+        {actionLabel && onAction && (
+          <button
+            type="button"
+            className="btn btn-brand"
+            onClick={onAction}
+          >
+            {actionLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

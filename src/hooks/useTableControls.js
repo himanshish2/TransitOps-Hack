@@ -1,102 +1,160 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { compareValues } from '../utils/tableUtils';
-import { DEFAULT_PAGE_SIZE } from '../utils/constants';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
-/**
- * Shared search + filter + sort + pagination controller.
- *
- * @param {Array} data - full dataset (already loaded, e.g. from a service call)
- * @param {Object} options
- * @param {string[]} options.searchFields - fields to match the search term against
- * @param {Object} options.initialFilters - e.g. { status: '', type: '', region: '' }
- * @param {Function} [options.customFilter] - optional (item, filters) => boolean for
- *        filters that need custom logic (e.g. license-validity derived field)
- * @param {string} [options.initialSortField]
- * @param {number} [options.pageSize]
- */
-export function useTableControls(data, options) {
+import { compareValues } from "../utils/tableUtils";
+import { DEFAULT_PAGE_SIZE } from "../utils/constants";
+
+export function useTableControls(data = [], options = {}) {
   const {
     searchFields = [],
     initialFilters = {},
-    customFilter,
+    customFilter = null,
     initialSortField = null,
-    pageSize = DEFAULT_PAGE_SIZE,
+    pageSize = DEFAULT_PAGE_SIZE || 10,
   } = options;
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState(initialFilters);
   const [sortField, setSortField] = useState(initialSortField);
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset to page 1 whenever search, filters, or sort change - avoids
-  // landing on an empty out-of-range page after narrowing results.
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filters, sortField, sortDirection]);
 
   const filteredData = useMemo(() => {
-    let result = [...data];
+    let result = Array.isArray(data) ? [...data] : [];
 
-    if (searchTerm.trim()) {
-      const term = searchTerm.trim().toLowerCase();
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (normalizedSearch) {
       result = result.filter((item) =>
-        searchFields.some((field) => String(item[field] ?? '').toLowerCase().includes(term))
+        searchFields.some((field) =>
+          String(item?.[field] ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch)
+        )
       );
     }
 
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value === '' || value === null || value === undefined) return;
-      if (customFilter) {
-        // customFilter handles ALL filter keys it recognizes; for keys it
-        // doesn't touch, fall back to direct equality below.
-        return;
+    result = result.filter((item) => {
+      const directFiltersMatch = Object.entries(filters).every(
+        ([key, value]) => {
+          if (
+            value === "" ||
+            value === null ||
+            value === undefined
+          ) {
+            return true;
+          }
+
+          // Custom/derived filters are handled separately.
+          if (
+            customFilter &&
+            key === "licenseValidity"
+          ) {
+            return true;
+          }
+
+          return String(item?.[key] ?? "").toLowerCase() ===
+            String(value).toLowerCase();
+        }
+      );
+
+      if (!directFiltersMatch) {
+        return false;
       }
-      result = result.filter((item) => item[key] === value);
+
+      return customFilter
+        ? customFilter(item, filters)
+        : true;
     });
 
-    if (customFilter) {
-      result = result.filter((item) => customFilter(item, filters));
-    }
-
     if (sortField) {
-      result.sort((a, b) => compareValues(a, b, sortField, sortDirection));
+      result.sort((a, b) =>
+        compareValues(
+          a,
+          b,
+          sortField,
+          sortDirection
+        )
+      );
     }
 
     return result;
-  }, [data, searchTerm, filters, sortField, sortDirection, searchFields, customFilter]);
+  }, [
+    data,
+    searchTerm,
+    filters,
+    sortField,
+    sortDirection,
+    searchFields,
+    customFilter,
+  ]);
+
+  const safePageSize =
+    Number(pageSize) > 0 ? Number(pageSize) : 10;
 
   const totalItems = filteredData.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalItems / safePageSize)
+  );
+
+  const safePage = Math.min(
+    Math.max(1, currentPage),
+    totalPages
+  );
 
   const paginatedData = useMemo(() => {
-    const start = (safePage - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [filteredData, safePage, pageSize]);
+    const startIndex =
+      (safePage - 1) * safePageSize;
+
+    return filteredData.slice(
+      startIndex,
+      startIndex + safePageSize
+    );
+  }, [filteredData, safePage, safePageSize]);
 
   const handleSort = useCallback((field) => {
-    setSortField((prevField) => {
-      if (prevField === field) {
-        setSortDirection((prevDir) => (prevDir === 'asc' ? 'desc' : 'asc'));
+    setSortField((previousField) => {
+      if (previousField === field) {
+        setSortDirection((previousDirection) =>
+          previousDirection === "asc"
+            ? "desc"
+            : "asc"
+        );
+
         return field;
       }
-      setSortDirection('asc');
+
+      setSortDirection("asc");
       return field;
     });
   }, []);
 
-  const updateFilter = useCallback((key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const updateFilter = useCallback(
+    (key, value) => {
+      setFilters((previousFilters) => ({
+        ...previousFilters,
+        [key]: value,
+      }));
+    },
+    []
+  );
 
   const clearFilters = useCallback(() => {
-    setFilters(initialFilters);
-    setSearchTerm('');
+    setSearchTerm("");
+    setFilters({ ...initialFilters });
     setSortField(initialSortField);
-    setSortDirection('asc');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setSortDirection("asc");
+    setCurrentPage(1);
+  }, [initialFilters, initialSortField]);
 
   return {
     searchTerm,
@@ -111,7 +169,7 @@ export function useTableControls(data, options) {
     setCurrentPage,
     totalPages,
     totalItems,
-    pageSize,
+    pageSize: safePageSize,
     paginatedData,
     filteredData,
   };

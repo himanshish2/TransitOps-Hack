@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
 import { vehicleService } from "../services/vehicleService";
 import { useToast } from "../context/ToastContext";
@@ -18,37 +22,73 @@ import VehicleViewModal from "../components/vehicles/VehicleViewModal";
 
 import "./VehiclesPage.css";
 
-const VehiclesPage = () => {
+export default function VehiclesPage() {
   const { showToast } = useToast();
 
-  const [vehicles, setVehicles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [vehicles, setVehicles] =
+    useState([]);
 
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewingVehicle, setViewingVehicle] = useState(null);
+  const [error, setError] =
+    useState(null);
 
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [formModalOpen, setFormModalOpen] =
+    useState(false);
 
-  const loadVehicles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await vehicleService.getVehicles();
-      setVehicles(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(
-        err?.message || "Something went wrong while loading vehicles."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [editingVehicle, setEditingVehicle] =
+    useState(null);
+
+  const [viewModalOpen, setViewModalOpen] =
+    useState(false);
+
+  const [viewingVehicle, setViewingVehicle] =
+    useState(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [serverError, setServerError] =
+    useState(null);
+
+  const loadVehicles = useCallback(
+    async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response =
+          await vehicleService.getVehicles();
+
+        const vehicleItems =
+          Array.isArray(response)
+            ? response
+            : Array.isArray(response?.items)
+              ? response.items
+              : [];
+
+        setVehicles(vehicleItems);
+      } catch (loadError) {
+        setError(
+          loadError?.message ||
+            "Something went wrong while loading vehicles."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadVehicles();
@@ -60,6 +100,7 @@ const VehiclesPage = () => {
     setCurrentPage,
     totalPages,
     totalItems,
+    pageSize,
     searchTerm,
     setSearchTerm,
     filters,
@@ -69,20 +110,27 @@ const VehiclesPage = () => {
     sortDirection,
     handleSort,
   } = useTableControls(vehicles, {
-    searchFields: ["registrationNumber", "vehicleModel", "type", "region"],
-    initialFilters: { type: "", status: "", region: "" },
+    searchFields: [
+      "registrationNumber",
+      "vehicleModel",
+      "type",
+      "region",
+    ],
+    initialFilters: {
+      type: "",
+      status: "",
+      region: "",
+    },
   });
 
-  const handleRetry = () => {
-    loadVehicles();
-  };
-
   const handleAddClick = () => {
+    setServerError(null);
     setEditingVehicle(null);
     setFormModalOpen(true);
   };
 
   const handleEditClick = (vehicle) => {
+    setServerError(null);
     setEditingVehicle(vehicle);
     setFormModalOpen(true);
   };
@@ -98,8 +146,11 @@ const VehiclesPage = () => {
   };
 
   const closeFormModal = () => {
+    if (submitting) return;
+
     setFormModalOpen(false);
     setEditingVehicle(null);
+    setServerError(null);
   };
 
   const closeViewModal = () => {
@@ -108,40 +159,88 @@ const VehiclesPage = () => {
   };
 
   const closeDeleteModal = () => {
+    if (deleting) return;
+
     setDeleteModalOpen(false);
     setDeleteTarget(null);
   };
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = async (
+    formData
+  ) => {
+    setSubmitting(true);
+    setServerError(null);
+
     try {
       if (editingVehicle) {
-        await vehicleService.updateVehicle(editingVehicle.id, formData);
-        showToast("Vehicle updated successfully.", "success");
+        await vehicleService.updateVehicle(
+          editingVehicle.id,
+          formData
+        );
+
+        showToast(
+          "Vehicle updated successfully.",
+          "success"
+        );
       } else {
-        await vehicleService.createVehicle(formData);
-        showToast("Vehicle added successfully.", "success");
+        await vehicleService.createVehicle(
+          formData
+        );
+
+        showToast(
+          "Vehicle added successfully.",
+          "success"
+        );
       }
-      closeFormModal();
+
+      setFormModalOpen(false);
+      setEditingVehicle(null);
+
       await loadVehicles();
-    } catch (err) {
-      showToast(
-        err?.message || "Something went wrong while saving the vehicle.",
-        "error"
-      );
+    } catch (saveError) {
+      const normalizedError =
+        saveError?.normalized || {
+          message:
+            saveError?.message ||
+            "Something went wrong while saving the vehicle.",
+        };
+
+      setServerError(normalizedError);
+
+      if (!normalizedError.field) {
+        showToast(
+          normalizedError.message,
+          "error"
+        );
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
+
     setDeleting(true);
+
     try {
-      await vehicleService.deleteVehicle(deleteTarget.id);
-      showToast("Vehicle deleted successfully.", "success");
-      closeDeleteModal();
-      await loadVehicles();
-    } catch (err) {
+      await vehicleService.deleteVehicle(
+        deleteTarget.id
+      );
+
       showToast(
-        err?.message || "Something went wrong while deleting the vehicle.",
+        "Vehicle deleted successfully.",
+        "success"
+      );
+
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+
+      await loadVehicles();
+    } catch (deleteError) {
+      showToast(
+        deleteError?.message ||
+          "Something went wrong while deleting the vehicle.",
         "error"
       );
     } finally {
@@ -150,21 +249,27 @@ const VehiclesPage = () => {
   };
 
   const hasVehicles = vehicles.length > 0;
-  const hasVisibleResults = (paginatedData || []).length > 0;
+  const hasVisibleResults =
+    paginatedData.length > 0;
 
   return (
     <div className="vehicles-page">
       <PageHeader
         title="Vehicle Registry"
-        subtitle="Manage fleet vehicles and their status"
+        subtitle="Manage fleet vehicles and operational status"
         actionLabel="Add Vehicle"
         onAction={handleAddClick}
       />
 
-      {loading && <LoadingState message="Loading vehicles..." />}
+      {loading && (
+        <LoadingState message="Loading vehicles..." />
+      )}
 
       {!loading && error && (
-        <ErrorState message={error} onRetry={handleRetry} />
+        <ErrorState
+          message={error}
+          onRetry={loadVehicles}
+        />
       )}
 
       {!loading && !error && (
@@ -174,7 +279,7 @@ const VehiclesPage = () => {
             onSearchChange={setSearchTerm}
             filters={filters}
             onFilterChange={updateFilter}
-            onClearFilters={clearFilters}
+            onClear={clearFilters}
           />
 
           {!hasVehicles && (
@@ -186,71 +291,80 @@ const VehiclesPage = () => {
             />
           )}
 
-          {hasVehicles && !hasVisibleResults && (
-            <EmptyState
-              title="No matching vehicles"
-              message="Try adjusting your search or filters."
-              actionLabel="Clear Filters"
-              onAction={clearFilters}
-            />
-          )}
-
-          {hasVehicles && hasVisibleResults && (
-            <>
-              <VehicleTable
-                vehicles={paginatedData}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                onView={handleViewClick}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
+          {hasVehicles &&
+            !hasVisibleResults && (
+              <EmptyState
+                title="No matching vehicles"
+                message="Try adjusting your search or filters."
+                actionLabel="Clear Filters"
+                onAction={clearFilters}
               />
+            )}
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                onPageChange={setCurrentPage}
-              />
-            </>
-          )}
+          {hasVehicles &&
+            hasVisibleResults && (
+              <>
+                <VehicleTable
+                  vehicles={paginatedData}
+                  sortField={sortField}
+                  sortDirection={
+                    sortDirection
+                  }
+                  onSort={handleSort}
+                  onView={handleViewClick}
+                  onEdit={handleEditClick}
+                  onDelete={
+                    handleDeleteClick
+                  }
+                />
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={pageSize}
+                  onPageChange={
+                    setCurrentPage
+                  }
+                />
+              </>
+            )}
         </>
       )}
 
-      {formModalOpen && (
-        <VehicleFormModal
-          isOpen={formModalOpen}
-          vehicle={editingVehicle}
-          onClose={closeFormModal}
-          onSubmit={handleFormSubmit}
-        />
-      )}
+      <VehicleFormModal
+        show={formModalOpen}
+        vehicle={editingVehicle}
+        existingVehicles={vehicles}
+        onClose={closeFormModal}
+        onSubmit={handleFormSubmit}
+        submitting={submitting}
+        serverError={serverError}
+      />
 
-      {viewModalOpen && (
-        <VehicleViewModal
-          isOpen={viewModalOpen}
-          vehicle={viewingVehicle}
-          onClose={closeViewModal}
-        />
-      )}
+      <VehicleViewModal
+        show={viewModalOpen}
+        vehicle={viewingVehicle}
+        onClose={closeViewModal}
+      />
 
       {deleteModalOpen && (
         <ConfirmModal
           isOpen={deleteModalOpen}
+          show={deleteModalOpen}
           title="Delete Vehicle"
           message={`Are you sure you want to delete ${
-            deleteTarget?.registrationNumber || "this vehicle"
+            deleteTarget?.registrationNumber ||
+            "this vehicle"
           }? This action cannot be undone.`}
           confirmLabel="Delete"
           confirmVariant="danger"
           loading={deleting}
           onConfirm={handleConfirmDelete}
           onCancel={closeDeleteModal}
+          onClose={closeDeleteModal}
         />
       )}
     </div>
   );
-};
-
-export default VehiclesPage;
+}

@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
-import {driverService} from "../services/driverService";
+import { driverService } from "../services/driverService";
 import { useToast } from "../context/ToastContext";
 import { useTableControls } from "../hooks/useTableControls";
+import { getLicenseExpiryStatus } from "../utils/licenseUtils";
 
 import PageHeader from "../components/common/PageHeader";
 import LoadingState from "../components/common/LoadingState";
@@ -18,39 +23,95 @@ import DriverViewModal from "../components/drivers/DriverViewModal";
 
 import "./DriversPage.css";
 
-const DriversPage = () => {
+export default function DriversPage() {
   const { showToast } = useToast();
 
-  const [drivers, setDrivers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [drivers, setDrivers] =
+    useState([]);
 
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingDriver, setEditingDriver] = useState(null);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewingDriver, setViewingDriver] = useState(null);
+  const [error, setError] =
+    useState(null);
 
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [formModalOpen, setFormModalOpen] =
+    useState(false);
 
-  const loadDrivers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await driverService.getDrivers();
-      setDrivers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err?.message || "Something went wrong while loading drivers.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [editingDriver, setEditingDriver] =
+    useState(null);
+
+  const [viewModalOpen, setViewModalOpen] =
+    useState(false);
+
+  const [viewingDriver, setViewingDriver] =
+    useState(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [serverError, setServerError] =
+    useState(null);
+
+  const loadDrivers = useCallback(
+    async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response =
+          await driverService.getDrivers();
+
+        const driverItems =
+          Array.isArray(response)
+            ? response
+            : Array.isArray(response?.items)
+              ? response.items
+              : [];
+
+        setDrivers(driverItems);
+      } catch (loadError) {
+        setError(
+          loadError?.message ||
+            "Something went wrong while loading drivers."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadDrivers();
   }, [loadDrivers]);
+
+  const driverCustomFilter = useCallback(
+    (driver, activeFilters) => {
+      if (
+        activeFilters.licenseValidity
+      ) {
+        return (
+          getLicenseExpiryStatus(
+            driver.licenseExpiryDate
+          ) ===
+          activeFilters.licenseValidity
+        );
+      }
+
+      return true;
+    },
+    []
+  );
 
   const {
     paginatedData,
@@ -58,6 +119,7 @@ const DriversPage = () => {
     setCurrentPage,
     totalPages,
     totalItems,
+    pageSize,
     searchTerm,
     setSearchTerm,
     filters,
@@ -67,20 +129,28 @@ const DriversPage = () => {
     sortDirection,
     handleSort,
   } = useTableControls(drivers, {
-    searchFields: ["name", "licenseNumber", "licenseCategory"],
-    initialFilters: { status: "", licenseCategory: "" },
+    searchFields: [
+      "name",
+      "licenseNumber",
+      "licenseCategory",
+      "contactNumber",
+    ],
+    initialFilters: {
+      status: "",
+      licenseCategory: "",
+      licenseValidity: "",
+    },
+    customFilter: driverCustomFilter,
   });
 
-  const handleRetry = () => {
-    loadDrivers();
-  };
-
   const handleAddClick = () => {
+    setServerError(null);
     setEditingDriver(null);
     setFormModalOpen(true);
   };
 
   const handleEditClick = (driver) => {
+    setServerError(null);
     setEditingDriver(driver);
     setFormModalOpen(true);
   };
@@ -96,8 +166,11 @@ const DriversPage = () => {
   };
 
   const closeFormModal = () => {
+    if (submitting) return;
+
     setFormModalOpen(false);
     setEditingDriver(null);
+    setServerError(null);
   };
 
   const closeViewModal = () => {
@@ -106,40 +179,88 @@ const DriversPage = () => {
   };
 
   const closeDeleteModal = () => {
+    if (deleting) return;
+
     setDeleteModalOpen(false);
     setDeleteTarget(null);
   };
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = async (
+    formData
+  ) => {
+    setSubmitting(true);
+    setServerError(null);
+
     try {
       if (editingDriver) {
-        await driverService.updateDriver(editingDriver.id, formData);
-        showToast("Driver updated successfully.", "success");
+        await driverService.updateDriver(
+          editingDriver.id,
+          formData
+        );
+
+        showToast(
+          "Driver updated successfully.",
+          "success"
+        );
       } else {
-        await driverService.createDriver(formData);
-        showToast("Driver added successfully.", "success");
+        await driverService.createDriver(
+          formData
+        );
+
+        showToast(
+          "Driver added successfully.",
+          "success"
+        );
       }
-      closeFormModal();
+
+      setFormModalOpen(false);
+      setEditingDriver(null);
+
       await loadDrivers();
-    } catch (err) {
-      showToast(
-        err?.message || "Something went wrong while saving the driver.",
-        "error"
-      );
+    } catch (saveError) {
+      const normalizedError =
+        saveError?.normalized || {
+          message:
+            saveError?.message ||
+            "Something went wrong while saving the driver.",
+        };
+
+      setServerError(normalizedError);
+
+      if (!normalizedError.field) {
+        showToast(
+          normalizedError.message,
+          "error"
+        );
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
+
     setDeleting(true);
+
     try {
-      await driverService.deleteDriver(deleteTarget.id);
-      showToast("Driver deleted successfully.", "success");
-      closeDeleteModal();
-      await loadDrivers();
-    } catch (err) {
+      await driverService.deleteDriver(
+        deleteTarget.id
+      );
+
       showToast(
-        err?.message || "Something went wrong while deleting the driver.",
+        "Driver deleted successfully.",
+        "success"
+      );
+
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+
+      await loadDrivers();
+    } catch (deleteError) {
+      showToast(
+        deleteError?.message ||
+          "Something went wrong while deleting the driver.",
         "error"
       );
     } finally {
@@ -148,7 +269,8 @@ const DriversPage = () => {
   };
 
   const hasDrivers = drivers.length > 0;
-  const hasVisibleResults = (paginatedData || []).length > 0;
+  const hasVisibleResults =
+    paginatedData.length > 0;
 
   return (
     <div className="drivers-page">
@@ -159,10 +281,15 @@ const DriversPage = () => {
         onAction={handleAddClick}
       />
 
-      {loading && <LoadingState message="Loading drivers..." />}
+      {loading && (
+        <LoadingState message="Loading drivers..." />
+      )}
 
       {!loading && error && (
-        <ErrorState message={error} onRetry={handleRetry} />
+        <ErrorState
+          message={error}
+          onRetry={loadDrivers}
+        />
       )}
 
       {!loading && !error && (
@@ -172,7 +299,7 @@ const DriversPage = () => {
             onSearchChange={setSearchTerm}
             filters={filters}
             onFilterChange={updateFilter}
-            onClearFilters={clearFilters}
+            onClear={clearFilters}
           />
 
           {!hasDrivers && (
@@ -184,71 +311,79 @@ const DriversPage = () => {
             />
           )}
 
-          {hasDrivers && !hasVisibleResults && (
-            <EmptyState
-              title="No matching drivers"
-              message="Try adjusting your search or filters."
-              actionLabel="Clear Filters"
-              onAction={clearFilters}
-            />
-          )}
-
-          {hasDrivers && hasVisibleResults && (
-            <>
-              <DriverTable
-                drivers={paginatedData}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                onView={handleViewClick}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
+          {hasDrivers &&
+            !hasVisibleResults && (
+              <EmptyState
+                title="No matching drivers"
+                message="Try adjusting your search or filters."
+                actionLabel="Clear Filters"
+                onAction={clearFilters}
               />
+            )}
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                onPageChange={setCurrentPage}
-              />
-            </>
-          )}
+          {hasDrivers &&
+            hasVisibleResults && (
+              <>
+                <DriverTable
+                  drivers={paginatedData}
+                  sortField={sortField}
+                  sortDirection={
+                    sortDirection
+                  }
+                  onSort={handleSort}
+                  onView={handleViewClick}
+                  onEdit={handleEditClick}
+                  onDelete={
+                    handleDeleteClick
+                  }
+                />
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={pageSize}
+                  onPageChange={
+                    setCurrentPage
+                  }
+                />
+              </>
+            )}
         </>
       )}
 
-      {formModalOpen && (
-        <DriverFormModal
-          isOpen={formModalOpen}
-          driver={editingDriver}
-          onClose={closeFormModal}
-          onSubmit={handleFormSubmit}
-        />
-      )}
+      <DriverFormModal
+        show={formModalOpen}
+        driver={editingDriver}
+        onClose={closeFormModal}
+        onSubmit={handleFormSubmit}
+        submitting={submitting}
+        serverError={serverError}
+      />
 
-      {viewModalOpen && (
-        <DriverViewModal
-          isOpen={viewModalOpen}
-          driver={viewingDriver}
-          onClose={closeViewModal}
-        />
-      )}
+      <DriverViewModal
+        show={viewModalOpen}
+        driver={viewingDriver}
+        onClose={closeViewModal}
+      />
 
       {deleteModalOpen && (
         <ConfirmModal
           isOpen={deleteModalOpen}
+          show={deleteModalOpen}
           title="Delete Driver"
           message={`Are you sure you want to delete ${
-            deleteTarget?.name || "this driver"
+            deleteTarget?.name ||
+            "this driver"
           }? This action cannot be undone.`}
           confirmLabel="Delete"
           confirmVariant="danger"
           loading={deleting}
           onConfirm={handleConfirmDelete}
           onCancel={closeDeleteModal}
+          onClose={closeDeleteModal}
         />
       )}
     </div>
   );
-};
-
-export default DriversPage;
+}

@@ -1,13 +1,15 @@
+/* src/components/layout/TopNavbar.css */
+
 .transitops-topnavbar {
   position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
+  inset: 0 0 auto 0;
   height: var(--topbar-height);
   background-color: var(--background-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
   padding: 0 var(--space-lg);
   z-index: 1030;
 }
@@ -18,15 +20,158 @@
   }
 }
 
+.topnavbar-left,
+.topnavbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.topnavbar-page-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.topnavbar-page-title {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.topnavbar-page-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
 .notification-dot {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 5px;
+  right: 5px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background-color: var(--primary-orange);
   border: 2px solid var(--background-secondary);
+}
+
+.notification-count {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background-color: var(--danger-color);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(390px, calc(100vw - 24px));
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  z-index: 1100;
+}
+
+.notification-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-helper {
+  font-size: var(--font-size-xs);
+}
+
+.notification-refresh {
+  border: 0;
+  background: transparent;
+  color: var(--primary-orange);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.notification-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-item:hover {
+  background-color: var(--background-primary);
+}
+
+.notification-item-warning
+  .notification-alert-icon {
+  color: var(--warning-color);
+}
+
+.notification-item-danger
+  .notification-alert-icon {
+  color: var(--danger-color);
+}
+
+.notification-alert-icon {
+  padding-top: 2px;
+}
+
+.notification-title {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.notification-message,
+.notification-time {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.notification-time {
+  margin-top: 4px;
+}
+
+.notification-empty {
+  padding: var(--space-xl);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.notification-view-dashboard {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--background-secondary);
+  color: var(--primary-orange);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.notification-view-dashboard:hover {
+  background-color: var(--orange-soft);
 }
 
 .profile-trigger {
@@ -78,6 +223,7 @@
   top: calc(100% + 8px);
   right: 0;
   min-width: 220px;
+  background-color: var(--card-background);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color);
@@ -86,4 +232,18 @@
 
 .dropdown-item-text {
   padding: 4px var(--space-md) var(--space-sm);
+}
+
+@media (max-width: 576px) {
+  .transitops-topnavbar {
+    padding: 0 var(--space-sm);
+  }
+
+  .topnavbar-page-subtitle {
+    display: none;
+  }
+
+  .topnavbar-actions {
+    gap: var(--space-sm);
+  }
 }

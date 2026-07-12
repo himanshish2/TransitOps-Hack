@@ -1,18 +1,34 @@
-import { FiSun, FiMoon } from 'react-icons/fi';
-import { useTheme } from '../../context/ThemeContext';
+// src/components/layout/ThemeToggle.jsx
+
+import { FiSun, FiMoon } from "react-icons/fi";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
+  const isLight = theme === "light";
+
   return (
     <button
       type="button"
-      className="btn-icon"
+      className="btn-icon theme-toggle-button"
       onClick={toggleTheme}
-      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-      title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      aria-label={
+        isLight
+          ? "Switch to dark mode"
+          : "Switch to light mode"
+      }
+      title={
+        isLight
+          ? "Switch to dark mode"
+          : "Switch to light mode"
+      }
     >
-      {theme === 'light' ? <FiMoon size={16} /> : <FiSun size={16} />}
+      {isLight ? (
+        <FiMoon size={17} />
+      ) : (
+        <FiSun size={17} />
+      )}
     </button>
   );
 }
