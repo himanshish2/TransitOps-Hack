@@ -1,0 +1,7 @@
+.dashboard-filters-bar {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.dashboard-filters-bar .form-select {
+  width: auto;
+}

@@ -1,0 +1,292 @@
+/* ==========================================================================
+   TransitOps - Global Styles
+   Typography, utility classes, shared button/form/table styles, and
+   layout resets used across the whole app.
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+a {
+  color: var(--primary-orange);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--orange-hover);
+}
+
+/* ---- Layout helpers ---- */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background-primary);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-lg);
+  margin-top: var(--topbar-height);
+}
+
+@media (min-width: 992px) {
+  .main-content {
+    margin-left: var(--sidebar-width);
+  }
+}
+
+.no-overflow-x {
+  overflow-x: hidden;
+}
+
+.table-responsive-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--card-background);
+}
+
+/* ---- Surfaces ---- */
+.surface-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-lg);
+}
+
+/* ---- Buttons ---- */
+.btn-brand {
+  background-color: var(--primary-orange);
+  border-color: var(--primary-orange);
+  color: var(--text-inverse);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-brand:hover,
+.btn-brand:focus {
+  background-color: var(--orange-hover);
+  border-color: var(--orange-hover);
+  color: var(--text-inverse);
+}
+
+.btn-brand-outline {
+  background-color: transparent;
+  border: 1px solid var(--primary-orange);
+  color: var(--primary-orange);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-brand-outline:hover,
+.btn-brand-outline:focus {
+  background-color: var(--orange-soft);
+  color: var(--orange-hover);
+  border-color: var(--orange-hover);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background-color: var(--orange-soft);
+  color: var(--primary-orange);
+}
+
+.btn-icon.danger:hover {
+  background-color: var(--danger-soft);
+  color: var(--danger-color);
+}
+
+/* Visible keyboard focus states throughout the app */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.btn-icon:focus-visible {
+  outline: 2px solid var(--primary-orange);
+  outline-offset: 2px;
+}
+
+/* ---- Forms ---- */
+.form-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.form-control,
+.form-select {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  font-size: var(--font-size-base);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-orange);
+  box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.15);
+}
+
+.field-error-text {
+  color: var(--danger-color);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-xs);
+}
+
+.is-invalid-field {
+  border-color: var(--danger-color) !important;
+}
+
+/* ---- Tables (shared base look for VehicleTable / DriverTable) ---- */
+.data-table {
+  width: 100%;
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+}
+
+.data-table thead th {
+  background-color: var(--background-primary);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--space-sm) var(--space-md);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: var(--space-sm) var(--space-md);
+  vertical-align: middle;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--orange-soft);
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-th:hover {
+  color: var(--primary-orange);
+}
+
+/* ---- Status badges (shared by StatusBadge component) ---- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.status-badge.status-success { background-color: var(--success-soft); color: var(--success-color); }
+.status-badge.status-warning { background-color: var(--warning-soft); color: var(--warning-color); }
+.status-badge.status-danger  { background-color: var(--danger-soft); color: var(--danger-color); }
+.status-badge.status-info    { background-color: var(--info-soft); color: var(--info-color); }
+.status-badge.status-neutral { background-color: var(--background-primary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+/* ---- Utility classes ---- */
+.text-muted-custom { color: var(--text-secondary); }
+.text-brand { color: var(--primary-orange); }
+.fw-medium { font-weight: var(--font-weight-medium); }
+.fw-semibold { font-weight: var(--font-weight-semibold); }
+.rounded-brand { border-radius: var(--radius-md); }
+.shadow-brand-sm { box-shadow: var(--shadow-sm); }
+.shadow-brand-md { box-shadow: var(--shadow-md); }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+
+.empty-state-wrapper,
+.error-state-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--text-secondary);
+}
+
+.empty-state-wrapper svg,
+.error-state-wrapper svg {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  opacity: 0.6;
+}
+
+.skeleton-block {
+  background: linear-gradient(90deg, var(--border-color) 25%, var(--background-primary) 50%, var(--border-color) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+  }
+}
+
+/* ---- Safety score bar ---- */
+.safety-score-bar-track {
+  width: 60px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--border-color);
+  overflow: hidden;
+}
+
+.safety-score-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+}

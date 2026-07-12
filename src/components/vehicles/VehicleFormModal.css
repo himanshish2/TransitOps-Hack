@@ -1,0 +1,11 @@
+.vehicle-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 576px) {
+  .vehicle-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

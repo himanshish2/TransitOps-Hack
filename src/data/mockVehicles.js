@@ -1,0 +1,27 @@
+// Mock vehicle dataset - field names match the /api/vehicles contract exactly.
+// Enough records included to demonstrate pagination, search, filters, sorting,
+// and every status/type/region combination.
+export const mockVehicles = [
+  { id: 'veh-001', registrationNumber: 'DL 1L AB 1234', vehicleModel: 'Tata Ace Gold', type: 'Mini Truck', maxLoadCapacity: 750, odometer: 45210, acquisitionCost: 620000, status: 'Available', region: 'North' },
+  { id: 'veh-002', registrationNumber: 'MH 12 CD 5678', vehicleModel: 'Ashok Leyland Dost', type: 'Van', maxLoadCapacity: 1250, odometer: 88450, acquisitionCost: 890000, status: 'On Trip', region: 'West' },
+  { id: 'veh-003', registrationNumber: 'KA 03 EF 9012', vehicleModel: 'Mahindra Bolero Pickup', type: 'Pickup', maxLoadCapacity: 1500, odometer: 132900, acquisitionCost: 750000, status: 'In Shop', region: 'South' },
+  { id: 'veh-004', registrationNumber: 'TN 09 GH 3456', vehicleModel: 'Tata 1109 Truck', type: 'Truck', maxLoadCapacity: 9000, odometer: 210340, acquisitionCost: 2450000, status: 'Available', region: 'South' },
+  { id: 'veh-005', registrationNumber: 'GJ 05 IJ 7890', vehicleModel: 'Eicher Pro 3015', type: 'Truck', maxLoadCapacity: 7500, odometer: 156780, acquisitionCost: 2100000, status: 'On Trip', region: 'West' },
+  { id: 'veh-006', registrationNumber: 'UP 32 KL 2345', vehicleModel: 'Tata Winger', type: 'Van', maxLoadCapacity: 1100, odometer: 62310, acquisitionCost: 950000, status: 'Retired', region: 'North' },
+  { id: 'veh-007', registrationNumber: 'RJ 14 MN 6789', vehicleModel: 'Ashok Leyland Ecomet', type: 'Truck', maxLoadCapacity: 12000, odometer: 98230, acquisitionCost: 3200000, status: 'Available', region: 'North' },
+  { id: 'veh-008', registrationNumber: 'HR 26 OP 1122', vehicleModel: 'Mahindra Furio 7', type: 'Truck', maxLoadCapacity: 7000, odometer: 174500, acquisitionCost: 1980000, status: 'In Shop', region: 'North' },
+  { id: 'veh-009', registrationNumber: 'WB 06 QR 3344', vehicleModel: 'Tata Intra V30', type: 'Mini Truck', maxLoadCapacity: 1600, odometer: 34120, acquisitionCost: 780000, status: 'Available', region: 'East' },
+  { id: 'veh-010', registrationNumber: 'AP 09 ST 5566', vehicleModel: 'Force Traveller', type: 'Van', maxLoadCapacity: 900, odometer: 71230, acquisitionCost: 1150000, status: 'On Trip', region: 'South' },
+  { id: 'veh-011', registrationNumber: 'MP 04 UV 7788', vehicleModel: 'Bharat Benz 1617', type: 'Truck', maxLoadCapacity: 9500, odometer: 118900, acquisitionCost: 2650000, status: 'Available', region: 'Central' },
+  { id: 'veh-012', registrationNumber: 'PB 10 WX 9900', vehicleModel: 'Mahindra Jeeto', type: 'Mini Truck', maxLoadCapacity: 600, odometer: 22100, acquisitionCost: 480000, status: 'Available', region: 'North' },
+  { id: 'veh-013', registrationNumber: 'KA 51 YZ 1357', vehicleModel: 'Tata Signa 4021', type: 'Trailer', maxLoadCapacity: 25000, odometer: 245600, acquisitionCost: 4800000, status: 'On Trip', region: 'South' },
+  { id: 'veh-014', registrationNumber: 'MH 04 AA 2468', vehicleModel: 'Ashok Leyland Boss', type: 'Truck', maxLoadCapacity: 5500, odometer: 89340, acquisitionCost: 1750000, status: 'Retired', region: 'West' },
+  { id: 'veh-015', registrationNumber: 'DL 8C BB 3690', vehicleModel: 'Mahindra Supro Maxi Truck', type: 'Mini Truck', maxLoadCapacity: 1000, odometer: 51230, acquisitionCost: 700000, status: 'Available', region: 'North' },
+  { id: 'veh-016', registrationNumber: 'TS 07 CC 4812', vehicleModel: 'Eicher Skyline Pro', type: 'Truck', maxLoadCapacity: 8000, odometer: 143200, acquisitionCost: 2300000, status: 'In Shop', region: 'South' },
+  { id: 'veh-017', registrationNumber: 'GJ 27 DD 5934', vehicleModel: 'Tata Ultra 1518', type: 'Truck', maxLoadCapacity: 10500, odometer: 67890, acquisitionCost: 2900000, status: 'Available', region: 'West' },
+  { id: 'veh-018', registrationNumber: 'UP 16 EE 6045', vehicleModel: 'Mahindra Bolero Camper', type: 'Pickup', maxLoadCapacity: 800, odometer: 39450, acquisitionCost: 630000, status: 'On Trip', region: 'North' },
+  { id: 'veh-019', registrationNumber: 'CG 04 FF 7156', vehicleModel: 'Ashok Leyland Dost+', type: 'Van', maxLoadCapacity: 1350, odometer: 28900, acquisitionCost: 920000, status: 'Available', region: 'Central' },
+  { id: 'veh-020', registrationNumber: 'OD 02 GG 8267', vehicleModel: 'Tata Prima 2830', type: 'Trailer', maxLoadCapacity: 28000, odometer: 189300, acquisitionCost: 5200000, status: 'On Trip', region: 'East' },
+  { id: 'veh-021', registrationNumber: 'KL 07 HH 9378', vehicleModel: 'Force Trump 40', type: 'Truck', maxLoadCapacity: 4000, odometer: 102340, acquisitionCost: 1450000, status: 'Available', region: 'South' },
+  { id: 'veh-022', registrationNumber: 'BR 01 II 1029', vehicleModel: 'Mahindra Blazo X 28', type: 'Truck', maxLoadCapacity: 11000, odometer: 76540, acquisitionCost: 3100000, status: 'In Shop', region: 'East' },
+];

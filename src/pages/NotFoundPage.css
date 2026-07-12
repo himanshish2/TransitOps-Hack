@@ -1,0 +1,87 @@
+.notfound-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-lg);
+  background-color: var(--background-primary);
+  font-family: var(--font-family-base);
+}
+
+.notfound-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-xl);
+}
+
+.notfound-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-orange);
+  color: var(--text-inverse);
+  font-size: 20px;
+}
+
+.notfound-brand-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.notfound-code {
+  font-size: 6rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-orange);
+  line-height: 1;
+  margin: 0;
+}
+
+.notfound-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: var(--space-md) 0 var(--space-sm) 0;
+}
+
+.notfound-message {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  max-width: 380px;
+  margin: 0 0 var(--space-xl) 0;
+}
+
+.notfound-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background-color: var(--primary-orange);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 20px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.notfound-button:hover {
+  background-color: var(--orange-hover);
+}
+
+@media (max-width: 480px) {
+  .notfound-code {
+    font-size: 4.5rem;
+  }
+
+  .notfound-title {
+    font-size: var(--font-size-xl);
+  }
+}

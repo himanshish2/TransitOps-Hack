@@ -1,0 +1,12 @@
+.drivers-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  font-family: var(--font-family-base);
+}
+
+@media (max-width: 576px) {
+  .drivers-page {
+    gap: var(--space-sm);
+  }
+}
