@@ -1,4 +1,4 @@
-// src/pages/DashboardPage.jsx
+// src/pages/DriversPage.jsx
 
 import {
   useState,
@@ -6,301 +6,481 @@ import {
   useCallback,
 } from "react";
 
-import {
-  FiTruck,
-  FiCheckCircle,
-  FiTool,
-  FiActivity,
-  FiClock,
-  FiUsers,
-  FiPercent,
-} from "react-icons/fi";
+import { driverService } from "../services/driverService";
+import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
+import { useTableControls } from "../hooks/useTableControls";
+import { getLicenseExpiryStatus } from "../utils/licenseUtils";
 
-import { dashboardService } from "../services/dashboardService";
+import {
+  hasPermission,
+  PERMISSIONS,
+} from "../utils/roleUtils";
 
 import PageHeader from "../components/common/PageHeader";
-import KpiCard from "../components/common/KpiCard";
 import LoadingState from "../components/common/LoadingState";
+import EmptyState from "../components/common/EmptyState";
 import ErrorState from "../components/common/ErrorState";
+import Pagination from "../components/common/Pagination";
+import ConfirmModal from "../components/common/ConfirmModal";
 
-import DashboardFilters from "../components/dashboard/DashboardFilters";
-import VehicleStatusChart from "../components/dashboard/VehicleStatusChart";
-import FleetUtilizationChart from "../components/dashboard/FleetUtilizationChart";
-import TripsByRegionChart from "../components/dashboard/TripsByRegionChart";
-import AlertsPanel from "../components/dashboard/AlertsPanel";
+import DriverFilters from "../components/drivers/DriverFilters";
+import DriverTable from "../components/drivers/DriverTable";
+import DriverFormModal from "../components/drivers/DriverFormModal";
+import DriverViewModal from "../components/drivers/DriverViewModal";
 
-import "./DashboardPage.css";
+import "./DriversPage.css";
 
-const DEFAULT_FILTERS = {
-  vehicleType: "",
-  status: "",
-  region: "",
-};
+export default function DriversPage() {
+  const { showToast } = useToast();
+  const { user } = useAuth();
 
-const DEFAULT_DASHBOARD = {
-  activeVehicles: 0,
-  availableVehicles: 0,
-  vehiclesInMaintenance: 0,
-  activeTrips: 0,
-  pendingTrips: 0,
-  driversOnDuty: 0,
-  fleetUtilization: 0,
-  vehicleStatusData: [],
-  fleetUtilizationData: [],
-  tripsByRegion: [],
-  alerts: [],
-  kpiDetails: {},
-};
+  const canCreate = hasPermission(
+    user?.role,
+    PERMISSIONS.CREATE_DRIVER
+  );
 
-export default function DashboardPage() {
-  const [filters, setFilters] =
-    useState(DEFAULT_FILTERS);
+  const canEdit = hasPermission(
+    user?.role,
+    PERMISSIONS.EDIT_DRIVER
+  );
 
-  const [dashboardData, setDashboardData] =
-    useState(DEFAULT_DASHBOARD);
+  const canDelete = hasPermission(
+    user?.role,
+    PERMISSIONS.DELETE_DRIVER
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [error, setError] =
+  const [
+    formModalOpen,
+    setFormModalOpen,
+  ] = useState(false);
+
+  const [
+    editingDriver,
+    setEditingDriver,
+  ] = useState(null);
+
+  const [
+    viewModalOpen,
+    setViewModalOpen,
+  ] = useState(false);
+
+  const [
+    viewingDriver,
+    setViewingDriver,
+  ] = useState(null);
+
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState(null);
+
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [serverError, setServerError] =
     useState(null);
 
-  const loadDashboard = useCallback(
-    async (activeFilters = DEFAULT_FILTERS) => {
-      setLoading(true);
-      setError(null);
+  const loadDrivers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const data =
-          await dashboardService.getDashboardData(
-            activeFilters
-          );
+    try {
+      const response =
+        await driverService.getDrivers();
 
-        setDashboardData({
-          ...DEFAULT_DASHBOARD,
-          ...(data || {}),
-          kpiDetails: {
-            ...DEFAULT_DASHBOARD.kpiDetails,
-            ...(data?.kpiDetails || {}),
-          },
-        });
-      } catch (loadError) {
-        setError(
-          loadError?.message ||
-            "Something went wrong while loading the dashboard."
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.items)
+          ? response.items
+          : [];
+
+      setDrivers(items);
+    } catch (loadError) {
+      setError(
+        loadError?.message ||
+          "Something went wrong while loading drivers."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDrivers();
+  }, [loadDrivers]);
+
+  const driverCustomFilter = useCallback(
+    (driver, activeFilters) => {
+      if (
+        activeFilters.licenseValidity
+      ) {
+        return (
+          getLicenseExpiryStatus(
+            driver.licenseExpiryDate
+          ) ===
+          activeFilters.licenseValidity
         );
-      } finally {
-        setLoading(false);
       }
+
+      return true;
     },
     []
   );
 
-  useEffect(() => {
-    loadDashboard(filters);
-  }, [loadDashboard]);
+  const {
+    paginatedData,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    searchTerm,
+    setSearchTerm,
+    filters,
+    updateFilter,
+    clearFilters,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useTableControls(drivers, {
+    searchFields: [
+      "name",
+      "licenseNumber",
+      "licenseCategory",
+      "contactNumber",
+    ],
+    initialFilters: {
+      status: "",
+      licenseCategory: "",
+      licenseValidity: "",
+    },
+    customFilter: driverCustomFilter,
+  });
 
-  const handleFilterChange = (
-    filterName,
-    value
+  const handleAddClick = () => {
+    if (!canCreate) {
+      showToast(
+        "Only Fleet Managers and Safety Officers can add drivers.",
+        "error"
+      );
+      return;
+    }
+
+    setServerError(null);
+    setEditingDriver(null);
+    setFormModalOpen(true);
+  };
+
+  const handleEditClick = (driver) => {
+    if (!canEdit) {
+      showToast(
+        "Only Fleet Managers and Safety Officers can edit drivers.",
+        "error"
+      );
+      return;
+    }
+
+    setServerError(null);
+    setEditingDriver(driver);
+    setFormModalOpen(true);
+  };
+
+  const handleViewClick = (driver) => {
+    setViewingDriver(driver);
+    setViewModalOpen(true);
+  };
+
+  const handleDeleteClick = (driver) => {
+    if (!canDelete) {
+      showToast(
+        "Only Fleet Managers can delete drivers.",
+        "error"
+      );
+      return;
+    }
+
+    setDeleteTarget(driver);
+    setDeleteModalOpen(true);
+  };
+
+  const closeFormModal = () => {
+    if (submitting) return;
+
+    setFormModalOpen(false);
+    setEditingDriver(null);
+    setServerError(null);
+  };
+
+  const closeViewModal = () => {
+    setViewModalOpen(false);
+    setViewingDriver(null);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+
+    setDeleteModalOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const handleFormSubmit = async (
+    formData
   ) => {
-    const nextFilters = {
-      ...filters,
-      [filterName]: value,
-    };
+    const allowed = editingDriver
+      ? canEdit
+      : canCreate;
 
-    setFilters(nextFilters);
-    loadDashboard(nextFilters);
+    if (!allowed) {
+      showToast(
+        "You do not have permission to modify drivers.",
+        "error"
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setServerError(null);
+
+    try {
+      if (editingDriver) {
+        await driverService.updateDriver(
+          editingDriver.id,
+          formData
+        );
+
+        showToast(
+          "Driver updated successfully.",
+          "success"
+        );
+      } else {
+        await driverService.createDriver(
+          formData
+        );
+
+        showToast(
+          "Driver added successfully.",
+          "success"
+        );
+      }
+
+      setFormModalOpen(false);
+      setEditingDriver(null);
+
+      await loadDrivers();
+    } catch (saveError) {
+      const normalizedError =
+        saveError?.normalized || {
+          message:
+            saveError?.message ||
+            "Something went wrong while saving the driver.",
+        };
+
+      setServerError(normalizedError);
+
+      if (!normalizedError.field) {
+        showToast(
+          normalizedError.message,
+          "error"
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleClearFilters = () => {
-    const clearedFilters = {
-      ...DEFAULT_FILTERS,
-    };
+  const handleConfirmDelete = async () => {
+    if (!canDelete) {
+      showToast(
+        "Only Fleet Managers can delete drivers.",
+        "error"
+      );
+      return;
+    }
 
-    setFilters(clearedFilters);
-    loadDashboard(clearedFilters);
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+
+    try {
+      await driverService.deleteDriver(
+        deleteTarget.id
+      );
+
+      showToast(
+        "Driver deleted successfully.",
+        "success"
+      );
+
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+
+      await loadDrivers();
+    } catch (deleteError) {
+      showToast(
+        deleteError?.message ||
+          "Something went wrong while deleting the driver.",
+        "error"
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const safeVehicleStatusData =
-    Array.isArray(
-      dashboardData.vehicleStatusData
-    )
-      ? dashboardData.vehicleStatusData
-      : [];
+  const hasDrivers = drivers.length > 0;
+  const hasVisibleResults =
+    paginatedData.length > 0;
 
-  const safeFleetUtilizationData =
-    Array.isArray(
-      dashboardData.fleetUtilizationData
-    )
-      ? dashboardData.fleetUtilizationData
-      : [];
-
-  const safeTripsByRegion = Array.isArray(
-    dashboardData.tripsByRegion
-  )
-    ? dashboardData.tripsByRegion
-    : [];
-
-  const safeAlerts = Array.isArray(
-    dashboardData.alerts
-  )
-    ? dashboardData.alerts
-    : [];
-
-  const details =
-    dashboardData.kpiDetails || {};
+  const headerActions = canCreate ? (
+    <button
+      type="button"
+      className="btn btn-brand"
+      onClick={handleAddClick}
+    >
+      Add Driver
+    </button>
+  ) : (
+    <span className="status-badge status-neutral">
+      View-only access
+    </span>
+  );
 
   return (
-    <div className="dashboard-page">
+    <div className="drivers-page">
       <PageHeader
-        title="Dashboard"
-        subtitle="Live overview of fleet, trips and drivers"
-      />
-
-      <DashboardFilters
-        filters={filters}
-        onChange={handleFilterChange}
-        onClear={handleClearFilters}
+        title="Driver Management"
+        subtitle="Manage drivers, licences and dispatch eligibility"
+        actions={headerActions}
       />
 
       {loading && (
-        <LoadingState message="Loading dashboard..." />
+        <LoadingState message="Loading drivers..." />
       )}
 
       {!loading && error && (
         <ErrorState
           message={error}
-          onRetry={() =>
-            loadDashboard(filters)
-          }
+          onRetry={loadDrivers}
         />
       )}
 
       {!loading && !error && (
         <>
-          <div className="dashboard-kpi-grid">
-            <KpiCard
-              label="Active Vehicles"
-              value={
-                dashboardData.activeVehicles
+          <DriverFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filters={filters}
+            onFilterChange={updateFilter}
+            onClear={clearFilters}
+          />
+
+          {!hasDrivers && (
+            <EmptyState
+              title="No drivers yet"
+              message={
+                canCreate
+                  ? "Add your first driver to start managing your team."
+                  : "No drivers are currently available."
               }
-              icon={<FiTruck />}
-              description="Vehicles currently available or operating on an active trip."
-              details={
-                details.activeVehicles
+              actionLabel={
+                canCreate
+                  ? "Add Driver"
+                  : undefined
+              }
+              onAction={
+                canCreate
+                  ? handleAddClick
+                  : undefined
               }
             />
+          )}
 
-            <KpiCard
-              label="Available Vehicles"
-              value={
-                dashboardData.availableVehicles
-              }
-              icon={<FiCheckCircle />}
-              variant="success"
-              description="Vehicles currently eligible for trip assignment."
-              details={
-                details.availableVehicles
-              }
-            />
-
-            <KpiCard
-              label="Vehicles in Maintenance"
-              value={
-                dashboardData.vehiclesInMaintenance
-              }
-              icon={<FiTool />}
-              variant="warning"
-              description="Vehicles marked In Shop and excluded from dispatch selection."
-              details={
-                details.vehiclesInMaintenance
-              }
-            />
-
-            <KpiCard
-              label="Active Trips"
-              value={dashboardData.activeTrips}
-              icon={<FiActivity />}
-              variant="info"
-              description="Vehicles currently marked On Trip."
-              details={details.activeTrips}
-            />
-
-            <KpiCard
-              label="Pending Trips"
-              value={dashboardData.pendingTrips}
-              icon={<FiClock />}
-              variant="warning"
-              description="Trips awaiting dispatch or operational confirmation."
-              details={details.pendingTrips}
-            />
-
-            <KpiCard
-              label="Drivers On Duty"
-              value={
-                dashboardData.driversOnDuty
-              }
-              icon={<FiUsers />}
-              description="Drivers currently Available or On Trip."
-              details={
-                details.driversOnDuty
-              }
-            />
-
-            <KpiCard
-              label="Fleet Utilization"
-              value={`${
-                dashboardData.fleetUtilization ??
-                0
-              }%`}
-              icon={<FiPercent />}
-              variant="info"
-              description="Share of operational vehicles currently assigned to active trips."
-              details={
-                details.fleetUtilization
-              }
-            />
-          </div>
-
-          <div className="dashboard-charts-grid">
-            <div className="dashboard-chart-card">
-              <h3 className="dashboard-chart-title">
-                Vehicle Status
-              </h3>
-
-              <VehicleStatusChart
-                data={
-                  safeVehicleStatusData
-                }
+          {hasDrivers &&
+            !hasVisibleResults && (
+              <EmptyState
+                title="No matching drivers"
+                message="Try adjusting your search or filters."
+                actionLabel="Clear Filters"
+                onAction={clearFilters}
               />
-            </div>
+            )}
 
-            <div className="dashboard-chart-card">
-              <h3 className="dashboard-chart-title">
-                Fleet Utilization
-              </h3>
+          {hasDrivers &&
+            hasVisibleResults && (
+              <>
+                <DriverTable
+                  drivers={paginatedData}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onView={handleViewClick}
+                  onEdit={
+                    canEdit
+                      ? handleEditClick
+                      : null
+                  }
+                  onDelete={
+                    canDelete
+                      ? handleDeleteClick
+                      : null
+                  }
+                />
 
-              <FleetUtilizationChart
-                data={
-                  safeFleetUtilizationData
-                }
-              />
-            </div>
-
-            <div className="dashboard-chart-card dashboard-chart-card-wide">
-              <h3 className="dashboard-chart-title">
-                Active Trips by Region
-              </h3>
-
-              <TripsByRegionChart
-                data={safeTripsByRegion}
-              />
-            </div>
-          </div>
-
-          <AlertsPanel alerts={safeAlerts} />
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                />
+              </>
+            )}
         </>
+      )}
+
+      <DriverFormModal
+        show={formModalOpen}
+        driver={editingDriver}
+        onClose={closeFormModal}
+        onSubmit={handleFormSubmit}
+        submitting={submitting}
+        serverError={serverError}
+      />
+
+      <DriverViewModal
+        show={viewModalOpen}
+        driver={viewingDriver}
+        onClose={closeViewModal}
+      />
+
+      {deleteModalOpen && (
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          show={deleteModalOpen}
+          title="Delete Driver"
+          message={`Are you sure you want to delete ${
+            deleteTarget?.name ||
+            "this driver"
+          }? This action cannot be undone.`}
+          confirmLabel="Delete"
+          confirmVariant="danger"
+          loading={deleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={closeDeleteModal}
+          onClose={closeDeleteModal}
+        />
       )}
     </div>
   );

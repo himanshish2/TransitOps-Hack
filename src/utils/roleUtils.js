@@ -1,21 +1,158 @@
-import { USER_ROLES } from './constants';
+// src/utils/roleUtils.js
+
+import { USER_ROLES } from "./constants";
 
 const ROLE_LABELS = {
-  [USER_ROLES.FLEET_MANAGER]: 'Fleet Manager',
-  [USER_ROLES.DRIVER]: 'Driver',
-  [USER_ROLES.SAFETY_OFFICER]: 'Safety Officer',
-  [USER_ROLES.FINANCIAL_ANALYST]: 'Financial Analyst',
+  [USER_ROLES.FLEET_MANAGER]: "Fleet Manager",
+  [USER_ROLES.DRIVER]: "Driver",
+  [USER_ROLES.SAFETY_OFFICER]: "Safety Officer",
+  [USER_ROLES.FINANCIAL_ANALYST]: "Financial Analyst",
 };
 
-// Converts a raw backend role value (e.g. "FLEET_MANAGER") into a
-// human-readable label (e.g. "Fleet Manager") for display in the UI.
+export const PERMISSIONS = {
+  VIEW_DASHBOARD: "VIEW_DASHBOARD",
+
+  VIEW_VEHICLES: "VIEW_VEHICLES",
+  CREATE_VEHICLE: "CREATE_VEHICLE",
+  EDIT_VEHICLE: "EDIT_VEHICLE",
+  DELETE_VEHICLE: "DELETE_VEHICLE",
+
+  VIEW_DRIVERS: "VIEW_DRIVERS",
+  CREATE_DRIVER: "CREATE_DRIVER",
+  EDIT_DRIVER: "EDIT_DRIVER",
+  DELETE_DRIVER: "DELETE_DRIVER",
+
+  VIEW_TRIPS: "VIEW_TRIPS",
+  CREATE_TRIP: "CREATE_TRIP",
+  DISPATCH_TRIP: "DISPATCH_TRIP",
+  COMPLETE_TRIP: "COMPLETE_TRIP",
+  CANCEL_TRIP: "CANCEL_TRIP",
+
+  VIEW_MAINTENANCE: "VIEW_MAINTENANCE",
+  CREATE_MAINTENANCE: "CREATE_MAINTENANCE",
+  CLOSE_MAINTENANCE: "CLOSE_MAINTENANCE",
+
+  VIEW_EXPENSES: "VIEW_EXPENSES",
+  CREATE_EXPENSE: "CREATE_EXPENSE",
+
+  VIEW_REPORTS: "VIEW_REPORTS",
+};
+
+const ROLE_PERMISSIONS = {
+  [USER_ROLES.FLEET_MANAGER]: [
+    PERMISSIONS.VIEW_DASHBOARD,
+
+    PERMISSIONS.VIEW_VEHICLES,
+    PERMISSIONS.CREATE_VEHICLE,
+    PERMISSIONS.EDIT_VEHICLE,
+    PERMISSIONS.DELETE_VEHICLE,
+
+    PERMISSIONS.VIEW_DRIVERS,
+    PERMISSIONS.CREATE_DRIVER,
+    PERMISSIONS.EDIT_DRIVER,
+    PERMISSIONS.DELETE_DRIVER,
+
+    PERMISSIONS.VIEW_TRIPS,
+    PERMISSIONS.CREATE_TRIP,
+    PERMISSIONS.DISPATCH_TRIP,
+    PERMISSIONS.COMPLETE_TRIP,
+    PERMISSIONS.CANCEL_TRIP,
+
+    PERMISSIONS.VIEW_MAINTENANCE,
+    PERMISSIONS.CREATE_MAINTENANCE,
+    PERMISSIONS.CLOSE_MAINTENANCE,
+
+    PERMISSIONS.VIEW_EXPENSES,
+    PERMISSIONS.CREATE_EXPENSE,
+
+    PERMISSIONS.VIEW_REPORTS,
+  ],
+
+  [USER_ROLES.DRIVER]: [
+    PERMISSIONS.VIEW_DASHBOARD,
+
+    PERMISSIONS.VIEW_VEHICLES,
+    PERMISSIONS.VIEW_DRIVERS,
+
+    PERMISSIONS.VIEW_TRIPS,
+    PERMISSIONS.CREATE_TRIP,
+    PERMISSIONS.DISPATCH_TRIP,
+    PERMISSIONS.COMPLETE_TRIP,
+    PERMISSIONS.CANCEL_TRIP,
+
+    PERMISSIONS.VIEW_MAINTENANCE,
+
+    PERMISSIONS.VIEW_EXPENSES,
+    PERMISSIONS.CREATE_EXPENSE,
+  ],
+
+  [USER_ROLES.SAFETY_OFFICER]: [
+    PERMISSIONS.VIEW_DASHBOARD,
+
+    PERMISSIONS.VIEW_VEHICLES,
+
+    PERMISSIONS.VIEW_DRIVERS,
+    PERMISSIONS.CREATE_DRIVER,
+    PERMISSIONS.EDIT_DRIVER,
+
+    PERMISSIONS.VIEW_TRIPS,
+    PERMISSIONS.VIEW_MAINTENANCE,
+    PERMISSIONS.VIEW_EXPENSES,
+  ],
+
+  [USER_ROLES.FINANCIAL_ANALYST]: [
+    PERMISSIONS.VIEW_DASHBOARD,
+
+    PERMISSIONS.VIEW_VEHICLES,
+    PERMISSIONS.VIEW_DRIVERS,
+
+    PERMISSIONS.VIEW_TRIPS,
+    PERMISSIONS.VIEW_MAINTENANCE,
+
+    PERMISSIONS.VIEW_EXPENSES,
+    PERMISSIONS.CREATE_EXPENSE,
+
+    PERMISSIONS.VIEW_REPORTS,
+  ],
+};
+
 export function getRoleLabel(role) {
-  return ROLE_LABELS[role] || role || 'Unknown Role';
+  return ROLE_LABELS[role] || role || "Unknown Role";
 }
 
-// All roles currently have access to Dashboard, Vehicles, and Drivers.
-// Kept as a function (rather than a flat true/false) so role-aware access
-// rules can be tightened later without touching ProtectedRoute.
-export function canAccessModule(_role, _moduleKey) {
-  return true;
+export function hasPermission(role, permission) {
+  if (!role || !permission) {
+    return false;
+  }
+
+  return Boolean(
+    ROLE_PERMISSIONS[role]?.includes(permission)
+  );
+}
+
+/**
+ * Retained for sidebar and route-level checks.
+ *
+ * All existing GET pages are available to every authenticated role,
+ * matching the backend's current access rules.
+ */
+export function canAccessModule(role, moduleKey) {
+  const modulePermissionMap = {
+    dashboard: PERMISSIONS.VIEW_DASHBOARD,
+    vehicles: PERMISSIONS.VIEW_VEHICLES,
+    drivers: PERMISSIONS.VIEW_DRIVERS,
+    trips: PERMISSIONS.VIEW_TRIPS,
+    maintenance: PERMISSIONS.VIEW_MAINTENANCE,
+    expenses: PERMISSIONS.VIEW_EXPENSES,
+    reports: PERMISSIONS.VIEW_REPORTS,
+  };
+
+  const requiredPermission =
+    modulePermissionMap[moduleKey];
+
+  if (!requiredPermission) {
+    return false;
+  }
+
+  return hasPermission(role, requiredPermission);
 }

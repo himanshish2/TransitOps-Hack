@@ -1,3 +1,5 @@
+// src/pages/VehiclesPage.jsx
+
 import {
   useState,
   useEffect,
@@ -6,7 +8,13 @@ import {
 
 import { vehicleService } from "../services/vehicleService";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { useTableControls } from "../hooks/useTableControls";
+
+import {
+  hasPermission,
+  PERMISSIONS,
+} from "../utils/roleUtils";
 
 import PageHeader from "../components/common/PageHeader";
 import LoadingState from "../components/common/LoadingState";
@@ -24,33 +32,56 @@ import "./VehiclesPage.css";
 
 export default function VehiclesPage() {
   const { showToast } = useToast();
+  const { user } = useAuth();
 
-  const [vehicles, setVehicles] =
-    useState([]);
+  const canCreate = hasPermission(
+    user?.role,
+    PERMISSIONS.CREATE_VEHICLE
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const canEdit = hasPermission(
+    user?.role,
+    PERMISSIONS.EDIT_VEHICLE
+  );
 
-  const [error, setError] =
-    useState(null);
+  const canDelete = hasPermission(
+    user?.role,
+    PERMISSIONS.DELETE_VEHICLE
+  );
 
-  const [formModalOpen, setFormModalOpen] =
-    useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [editingVehicle, setEditingVehicle] =
-    useState(null);
+  const [
+    formModalOpen,
+    setFormModalOpen,
+  ] = useState(false);
 
-  const [viewModalOpen, setViewModalOpen] =
-    useState(false);
+  const [
+    editingVehicle,
+    setEditingVehicle,
+  ] = useState(null);
 
-  const [viewingVehicle, setViewingVehicle] =
-    useState(null);
+  const [
+    viewModalOpen,
+    setViewModalOpen,
+  ] = useState(false);
 
-  const [deleteTarget, setDeleteTarget] =
-    useState(null);
+  const [
+    viewingVehicle,
+    setViewingVehicle,
+  ] = useState(null);
 
-  const [deleteModalOpen, setDeleteModalOpen] =
-    useState(false);
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState(null);
+
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
 
   const [submitting, setSubmitting] =
     useState(false);
@@ -61,34 +92,30 @@ export default function VehiclesPage() {
   const [serverError, setServerError] =
     useState(null);
 
-  const loadVehicles = useCallback(
-    async () => {
-      setLoading(true);
-      setError(null);
+  const loadVehicles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const response =
-          await vehicleService.getVehicles();
+    try {
+      const response =
+        await vehicleService.getVehicles();
 
-        const vehicleItems =
-          Array.isArray(response)
-            ? response
-            : Array.isArray(response?.items)
-              ? response.items
-              : [];
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.items)
+          ? response.items
+          : [];
 
-        setVehicles(vehicleItems);
-      } catch (loadError) {
-        setError(
-          loadError?.message ||
-            "Something went wrong while loading vehicles."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+      setVehicles(items);
+    } catch (loadError) {
+      setError(
+        loadError?.message ||
+          "Something went wrong while loading vehicles."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadVehicles();
@@ -124,12 +151,28 @@ export default function VehiclesPage() {
   });
 
   const handleAddClick = () => {
+    if (!canCreate) {
+      showToast(
+        "Only Fleet Managers can add vehicles.",
+        "error"
+      );
+      return;
+    }
+
     setServerError(null);
     setEditingVehicle(null);
     setFormModalOpen(true);
   };
 
   const handleEditClick = (vehicle) => {
+    if (!canEdit) {
+      showToast(
+        "Only Fleet Managers can edit vehicles.",
+        "error"
+      );
+      return;
+    }
+
     setServerError(null);
     setEditingVehicle(vehicle);
     setFormModalOpen(true);
@@ -141,6 +184,14 @@ export default function VehiclesPage() {
   };
 
   const handleDeleteClick = (vehicle) => {
+    if (!canDelete) {
+      showToast(
+        "Only Fleet Managers can delete vehicles.",
+        "error"
+      );
+      return;
+    }
+
     setDeleteTarget(vehicle);
     setDeleteModalOpen(true);
   };
@@ -168,6 +219,18 @@ export default function VehiclesPage() {
   const handleFormSubmit = async (
     formData
   ) => {
+    const allowed = editingVehicle
+      ? canEdit
+      : canCreate;
+
+    if (!allowed) {
+      showToast(
+        "You do not have permission to modify vehicles.",
+        "error"
+      );
+      return;
+    }
+
     setSubmitting(true);
     setServerError(null);
 
@@ -219,6 +282,14 @@ export default function VehiclesPage() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canDelete) {
+      showToast(
+        "Only Fleet Managers can delete vehicles.",
+        "error"
+      );
+      return;
+    }
+
     if (!deleteTarget) return;
 
     setDeleting(true);
@@ -252,13 +323,26 @@ export default function VehiclesPage() {
   const hasVisibleResults =
     paginatedData.length > 0;
 
+  const headerActions = canCreate ? (
+    <button
+      type="button"
+      className="btn btn-brand"
+      onClick={handleAddClick}
+    >
+      Add Vehicle
+    </button>
+  ) : (
+    <span className="status-badge status-neutral">
+      View-only access
+    </span>
+  );
+
   return (
     <div className="vehicles-page">
       <PageHeader
         title="Vehicle Registry"
         subtitle="Manage fleet vehicles and operational status"
-        actionLabel="Add Vehicle"
-        onAction={handleAddClick}
+        actions={headerActions}
       />
 
       {loading && (
@@ -285,9 +369,21 @@ export default function VehiclesPage() {
           {!hasVehicles && (
             <EmptyState
               title="No vehicles yet"
-              message="Add your first vehicle to start building your fleet registry."
-              actionLabel="Add Vehicle"
-              onAction={handleAddClick}
+              message={
+                canCreate
+                  ? "Add your first vehicle to start building your fleet registry."
+                  : "No vehicles are currently available."
+              }
+              actionLabel={
+                canCreate
+                  ? "Add Vehicle"
+                  : undefined
+              }
+              onAction={
+                canCreate
+                  ? handleAddClick
+                  : undefined
+              }
             />
           )}
 
@@ -307,14 +403,18 @@ export default function VehiclesPage() {
                 <VehicleTable
                   vehicles={paginatedData}
                   sortField={sortField}
-                  sortDirection={
-                    sortDirection
-                  }
+                  sortDirection={sortDirection}
                   onSort={handleSort}
                   onView={handleViewClick}
-                  onEdit={handleEditClick}
+                  onEdit={
+                    canEdit
+                      ? handleEditClick
+                      : null
+                  }
                   onDelete={
-                    handleDeleteClick
+                    canDelete
+                      ? handleDeleteClick
+                      : null
                   }
                 />
 
@@ -323,9 +423,7 @@ export default function VehiclesPage() {
                   totalPages={totalPages}
                   totalItems={totalItems}
                   pageSize={pageSize}
-                  onPageChange={
-                    setCurrentPage
-                  }
+                  onPageChange={setCurrentPage}
                 />
               </>
             )}
